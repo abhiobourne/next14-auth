@@ -6,11 +6,19 @@ import {
     authRoutes,
     publicRoutes
 } from "@/routes";
-import next from "next";
+import { NextApiRequest, NextApiResponse } from "next"; // Import from "next" instead of "next-auth/internals"
 
+interface NextAuthRequest {
+    nextUrl: {
+        pathname: string;
+        search?: string;
+    };
+    auth?: any; 
+   
+}
 
 const { auth } = NextAuth(authConfig);
-export default auth((req) => {
+export default auth(async (req: NextAuthRequest): Promise<void | Response> => {
     const { nextUrl } = req;
     const isLoggedIn = !!req.auth;
 
@@ -19,14 +27,14 @@ export default auth((req) => {
     const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
     if(isApiAuthRoute) {
-        return null;
+        return;
     }
 
     if(isAuthRoute) {
         if(isLoggedIn) {
-            return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl))
+            return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl.toString()));
         }
-        return null;
+        return;
     }
     if( !isLoggedIn && !isPublicRoute) {
         let callbackUrl = nextUrl.pathname;
@@ -35,14 +43,14 @@ export default auth((req) => {
         }
         const encodedCallback = encodeURIComponent(callbackUrl);
         
-        return Response.redirect(new URL(`/auth/login?callbackUrl=${encodedCallback}`, nextUrl));
+        return Response.redirect(new URL(`/auth/login?callbackUrl=${encodedCallback}`, nextUrl.toString()));
     }
-    return null;
+    return;
 
 
 })
 
 // Optionally, don't invoke Middleware on some paths
 export const config = {
-    matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
+    matcher: ['/((?!.+\\.[\\w]+$|_next).)', '/', '/(api|trpc)(.)'],
 }
